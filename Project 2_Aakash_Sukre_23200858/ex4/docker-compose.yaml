@@ -1,0 +1,66 @@
+version: '3'
+networks:
+  rabbitmq_go_net:
+    driver: bridge
+
+services:
+  rabbitmq:
+    image: "rabbitmq:3.13-rc-management"
+    container_name: rabbitmq_container
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - rabbitmq_go_net
+
+  demonstrator_cc:
+    build: demonstrator_cc
+    command: python ./demonstrator_cc.py
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+    networks:
+      - rabbitmq_go_net
+
+  demonstrator_dm:
+    build: demonstrator_dm
+    command: python ./demonstrator_dm.py
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+    networks:
+      - rabbitmq_go_net
+
+  teaching_assistant:
+    build: teaching_assistant
+    restart: unless-stopped
+    command: python ./teaching_assistant.py
+    depends_on:
+      - rabbitmq
+    networks:
+      - rabbitmq_go_net
+
+  module_coordinator:
+    build: module_coordinator
+    restart: unless-stopped
+    command: python ./module_coordinator.py
+    depends_on:
+      - rabbitmq
+    networks:
+      - rabbitmq_go_net
+
+  student:
+    build: student
+    depends_on:
+      - rabbitmq
+      - demonstrator_cc
+      - demonstrator_dm
+      - teaching_assistant
+      - module_coordinator
+    stdin_open: true
+    tty: true
+    networks:
+      - rabbitmq_go_net
